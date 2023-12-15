@@ -86,7 +86,7 @@ class Client:
 
 if __name__ == "__main__":
     client = Client()
-    client.authenticate("mclachbot.bsky.social", "Rivka2015!")
+    
     image = Image(r"C:\Users\dmitr\python\footballdashboards\pizza.png", "build_up_pizza")
     post = Post(
         "Automated post test. Includes image. Mentioning @chicagodmitry.bsky.social",
