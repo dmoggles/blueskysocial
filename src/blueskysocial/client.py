@@ -51,7 +51,9 @@ class Client:
         Returns:
             dict: The session information returned by the server.
         """
-        response = requests.post(RPC_SLUG + CREATE_SESSION, json={"identifier": handle, "password": password})
+        response = requests.post(
+            RPC_SLUG + CREATE_SESSION, json={"identifier": handle, "password": password}
+        )
         response.raise_for_status()
         session = response.json()
         self._session = session
@@ -82,14 +84,3 @@ class Client:
         )
         response.raise_for_status()
         return response.json()
-
-
-if __name__ == "__main__":
-    client = Client()
-    
-    image = Image(r"C:\Users\dmitr\python\footballdashboards\pizza.png", "build_up_pizza")
-    post = Post(
-        "Automated post test. Includes image. Mentioning @chicagodmitry.bsky.social",
-        images=[image],
-    )
-    client.post(post)

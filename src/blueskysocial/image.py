@@ -57,7 +57,9 @@ class Image:
             self._image = self._get_image_from_file_handle()
 
         if len(self._image) > 1000000:
-            raise Exception(f"image file size too large. 1000000 bytes maximum, got: {len(self._image)}")
+            raise Exception(
+                f"image file size too large. 1000000 bytes maximum, got: {len(self._image)}"
+            )
 
     def _get_image_from_url(self):
         response = requests.get(self._image_src)
