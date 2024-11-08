@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
 from blueskysocial.post import Post
+from blueskysocial.errors import SessionNotAuthenticatedError
 from blueskysocial.api_endpoints import MENTION_TYPE, LINK_TYPE
 
 
@@ -24,11 +25,6 @@ class TestPost(unittest.TestCase):
         with self.assertRaises(Exception):
             Post(content, images)
 
-    def test_init_with_long_content(self):
-        content = "a" * 301
-        with self.assertRaises(Exception):
-            Post(content)
-
     def test_add_languages(self):
         content = "This is a test post"
         languages = ["en", "fr"]
@@ -38,7 +34,9 @@ class TestPost(unittest.TestCase):
 
     @patch("requests.get")
     def test_parse_mentions(self, mock_get):
-        content = "This is a test post with @mention1.bsky.social and @mention2.bsky.social"
+        content = (
+            "This is a test post with @mention1.bsky.social and @mention2.bsky.social"
+        )
         post = Post(content)
         mentions = post._parse_mentions()
         self.assertEqual(len(mentions), 2)
@@ -111,6 +109,13 @@ class TestPost(unittest.TestCase):
         self.assertNotIn("facets", built_post)
         self.assertIn("embed", built_post)
         self.assertEqual(len(built_post["embed"]["images"]), 2)
+
+    def test_build_too_long_post(self):
+        content = "This is a test post" * 1000
+        session = {"accessJwt": "access_token"}
+        post = Post(content)
+        with self.assertRaises(Exception):
+            post.build(session)
 
 
 if __name__ == "__main__":

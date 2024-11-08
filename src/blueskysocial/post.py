@@ -1,7 +1,13 @@
+"""
+
+This module contains the Post class, which represents a post in a social media feed.
+
+"""
 from typing import List, Dict
 from datetime import datetime, timezone
-import requests
 import re
+import requests
+
 from blueskysocial.api_endpoints import (
     POST_TYPE,
     MENTION_TYPE,
