@@ -32,7 +32,7 @@ class Image:
 
     """
 
-    def __init__(self, image: Union[str, BytesIO], alt_text: str = ""):
+    def __init__(self, image: Union[str, BytesIO], alt_text: str):
         self._image_src = image
         self._alt_text = alt_text
         self._initialize()
