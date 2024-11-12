@@ -17,8 +17,8 @@ pip install blueskysocial
 ```python
 from blueskysocial import Client, Post, Image
 
-client = Client(user_name, password)
-client.authenticate()
+client = Client()
+client.authenticate(user_name, password)
 
 image = Image('path/to/image.jpg', alt_text='This is an image.')
 post = Post('Hello, world!', 'This is my first post.', images=[image])
