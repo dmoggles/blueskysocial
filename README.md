@@ -34,7 +34,7 @@ client = Client(user_name, password)
 client.authenticate()
 
 image = Image('path/to/image.jpg', alt_text='This is an image.')
-post = Post('Hello, world!', 'This is my first post.', images=[image])
+post = Post('Hello, world!, This is my first post.', images=[image])
 second_post = Post('Another Post')
 client.post_thread([post,second_post])
 ```
