@@ -110,13 +110,35 @@ class TestPost(unittest.TestCase):
         self.assertIn("embed", built_post)
         self.assertEqual(len(built_post["embed"]["images"]), 2)
 
+    def test_build_with_video(self):
+        content = "This is a test post"
+        session = {"accessJwt": "access_token"}
+        video = MagicMock()
+        video.build.return_value = "video_blob"
+        post = Post(content, video=video)
+        built_post = post.build(session)
+        self.assertEqual(built_post["text"], content)
+        self.assertIn("createdAt", built_post)
+        self.assertNotIn("facets", built_post)
+        self.assertIn("embed", built_post)
+        self.assertEqual(built_post["embed"]["video"], "video_blob")
+
+    def test_build_with_images_and_video(self):
+        content = "This is a test post"
+        images = [MagicMock(), MagicMock()]
+        video = MagicMock()
+        with self.assertRaises(Exception):
+            Post(content, images, video)
+
+                   
+
     def test_build_too_long_post(self):
         content = "This is a test post" * 1000
         session = {"accessJwt": "access_token"}
         post = Post(content)
         with self.assertRaises(Exception):
             post.build(session)
-            
+
     def test_parse_hashtags(self):
         content = "This is a test post with #hashtag1 and #hashtag2"
         post = Post(content)

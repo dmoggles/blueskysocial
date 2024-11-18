@@ -15,9 +15,11 @@ from blueskysocial.api_endpoints import (
     RPC_SLUG,
     RESOLVE_HANDLE,
     IMAGES_TYPE,
-    HASHTAG_TYPE
+    HASHTAG_TYPE,
+    VIDEO_TYPE
 )
 from blueskysocial.image import Image
+from blueskysocial.video import Video
 
 
 class Post:
@@ -38,8 +40,10 @@ class Post:
         build() -> dict: Build the post.
     """
 
-    def __init__(self, content: str, images: List[Image] = None):
+    def __init__(self, content: str, images: List[Image] = None, video:Video = None):
+        assert not video or not images, "Cannot have both images and video in a post"
         self._images = images or []
+        self._video = video
         if len(self._images) > 4:
             raise Exception("Maximum of 4 images allowed per post")
 
@@ -290,5 +294,10 @@ class Post:
                     {"alt": image.alt_text, "image": image.build(session)}
                     for image in self._images
                 ],
+            }
+        if self._video:
+            self._post["embed"] = {
+                "$type": VIDEO_TYPE,
+                "video": self._video.build(session)
             }
         return self._post
