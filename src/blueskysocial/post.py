@@ -15,6 +15,7 @@ from blueskysocial.api_endpoints import (
     RPC_SLUG,
     RESOLVE_HANDLE,
     IMAGES_TYPE,
+    HASHTAG_TYPE
 )
 from blueskysocial.image import Image
 
@@ -137,6 +138,30 @@ class Post:
                 }
             )
         return spans
+    
+    def _parse_hashtags(self) -> List[Dict]:
+        """Parse the hashtags from the post.
+
+        Returns:
+            List[Dict]: A list of dictionaries representing the hashtags found in the post.
+                Each dictionary contains the following keys:
+                - "start": The starting index of the hashtag in the post text.
+                - "end": The ending index of the hashtag in the post text.
+                - "tag": The tag of the hashtag.
+        """
+        spans = []
+        # regex based on: https://stackoverflow.com/a/2166801
+        hashtag_regex = rb"[\W](#\w+)"
+        text_bytes = self._post["text"].encode("UTF-8")
+        for m in re.finditer(hashtag_regex, text_bytes):
+            spans.append(
+                {
+                    "start": m.start(1),
+                    "end": m.end(1),
+                    "tag": m.group(1)[1:].decode("UTF-8"),
+                }
+            )
+        return spans
 
     def _parse_urls(self) -> List[Dict]:
         spans = []
@@ -213,6 +238,21 @@ class Post:
                             "$type": LINK_TYPE,
                             # NOTE: URI ("I") not URL ("L")
                             "uri": u["url"],
+                        }
+                    ],
+                }
+            )
+        for h in self._parse_hashtags():
+            facets.append(
+                {
+                    "index": {
+                        "byteStart": h["start"],
+                        "byteEnd": h["end"],
+                    },
+                    "features": [
+                        {
+                            "$type": HASHTAG_TYPE,
+                            "tag": h["tag"],
                         }
                     ],
                 }
