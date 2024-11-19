@@ -37,9 +37,10 @@ class Video:
                 mime_type = VIDEO_MIME_TYPES_FROM_EXTENTIONS[self._path.split(".")[-1]]
             except KeyError:
                 raise Exception("Unsupported video format")
+            access_token = session["accessJwt"]
             resp = requests.post(
                 RPC_SLUG + UPLOAD_BLOB,
-                headers={"Authorization": f"Bearer {session["accessJwt"]}",
+                headers={"Authorization": f"Bearer "+access_token,
                             "Content-Type": mime_type},
                 data=stream
             )
