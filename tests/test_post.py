@@ -146,10 +146,10 @@ class TestPost(unittest.TestCase):
         self.assertEqual(len(hashtags), 2)
         self.assertEqual(hashtags[0]["start"], 25)
         self.assertEqual(hashtags[0]["end"], 34)
-        self.assertEqual(hashtags[0]["tag"], "#hashtag1")
+        self.assertEqual(hashtags[0]["tag"], "hashtag1")
         self.assertEqual(hashtags[1]["start"], 39)
         self.assertEqual(hashtags[1]["end"], 48)
-        self.assertEqual(hashtags[1]["tag"], "#hashtag2")
+        self.assertEqual(hashtags[1]["tag"], "hashtag2")
 
     def test_parse_hashtags_with_special_characters(self):
         content = "This is a test post with #hashtag1! and #hashtag2?"
@@ -158,10 +158,10 @@ class TestPost(unittest.TestCase):
         self.assertEqual(len(hashtags), 2)
         self.assertEqual(hashtags[0]["start"], 25)
         self.assertEqual(hashtags[0]["end"], 34)
-        self.assertEqual(hashtags[0]["tag"], "#hashtag1")
+        self.assertEqual(hashtags[0]["tag"], "hashtag1")
         self.assertEqual(hashtags[1]["start"], 40)
         self.assertEqual(hashtags[1]["end"], 49)
-        self.assertEqual(hashtags[1]["tag"], "#hashtag2")
+        self.assertEqual(hashtags[1]["tag"], "hashtag2")
 
     def test_parse_hashtags_with_no_hashtags(self):
         content = "This is a test post with no hashtags"

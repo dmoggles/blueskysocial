@@ -83,11 +83,12 @@ class Image:
         Returns:
             dict: The response JSON containing the uploaded image blob.
         """
+        access_token = session["accessJwt"]
         resp = requests.post(
             RPC_SLUG + UPLOAD_BLOB,
             headers={
                 "Content-Type": IMAGE_MIMETYPE,
-                "Authorization": "Bearer " + session["accessJwt"],
+                "Authorization": "Bearer " + access_token,
             },
             data=self._image,
         )
