@@ -1,12 +1,13 @@
 from typing import List, Dict, Union
 from io import BytesIO
 import requests
-from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG
+from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG, IMAGES_TYPE
+from blueskysocial.post_attachment import PostAttachment
 
 IMAGE_MIMETYPE = "image/png"
 
 
-class Image:
+class Image(PostAttachment):
     """
     Represents an image object that can be initialized from a URL, a local file, or a file handle.
 
@@ -72,6 +73,21 @@ class Image:
 
     def _get_image_from_file_handle(self):
         return self._image_src.read()
+
+    def attach_to_post(self, post, session: dict):
+        """
+        Attaches the image to a post.
+
+        Args:
+            post (dict): The post to attach the image to.
+            session (dict): The session containing the access JWT.
+        """
+
+        if "embed" not in post.post:
+            post.post["embed"] = {"$type": IMAGES_TYPE, "images": []}
+        post.post["embed"]["images"].append(
+            {"alt": self.alt_text, "image": self.build(session)}
+        )
 
     def build(self, session: dict) -> dict:
         """
