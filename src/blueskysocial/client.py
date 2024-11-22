@@ -3,6 +3,7 @@
 The client module contains the Client class which is used to
 interact with the BlueSky Social server.
 """
+
 from typing import Dict, List
 import requests
 from blueskysocial.post import Post

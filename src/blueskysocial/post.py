@@ -3,7 +3,8 @@
 This module contains the Post class, which represents a post in a social media feed.
 
 """
-from typing import List, Dict
+
+from typing import List, Dict, Union
 from datetime import datetime, timezone
 import re
 import requests
@@ -16,10 +17,11 @@ from blueskysocial.api_endpoints import (
     RESOLVE_HANDLE,
     IMAGES_TYPE,
     HASHTAG_TYPE,
-    VIDEO_TYPE
+    VIDEO_TYPE,
 )
 from blueskysocial.image import Image
 from blueskysocial.video import Video
+from blueskysocial.post_attachment import PostAttachment
 
 
 class Post:
@@ -40,18 +42,58 @@ class Post:
         build() -> dict: Build the post.
     """
 
-    def __init__(self, content: str, images: List[Image] = None, video:Video = None):
-        assert not video or not images, "Cannot have both images and video in a post"
-        self._images = images or []
-        self._video = video
-        if len(self._images) > 4:
-            raise Exception("Maximum of 4 images allowed per post")
+    def __init__(
+        self,
+        content: str,
+        images: List[Image] = None,
+        video: Video = None,
+        with_attachments: Union[PostAttachment, List[PostAttachment]] = None,
+    ):
+        assert not (
+            images and with_attachments
+        ), "Cannot use both `images` and `with_attachments` parameters"
+        assert not (
+            video and with_attachments
+        ), "Cannot use both `video` and `with_attachments` parameters"
+        assert not (video and images), "Cannot use both `video` and `images` parameters"
+        self.attachments = []
+        if with_attachments:
+            if isinstance(with_attachments, list):
+                self.attachments = with_attachments
+            else:
+                self.attachments = [with_attachments]
+        if images:
+            print("image parameter is depricated.  Use `with_attachments` instead")
+            self.attachments = images
+        if video:
+            print("video parameter is depricated.  Use `with_attachments` instead")
+            self.attachments = [video]
+
+        self.verify_attachments()
 
         self.content_str = content
+
         self._post = {
             "$type": POST_TYPE,
             "text": content,
         }
+
+    @property
+    def post(self):
+        return self._post
+
+    def verify_attachments(self):
+        for attachment in self.attachments:
+            if not isinstance(attachment, PostAttachment):
+                raise TypeError(
+                    f"Attachment must be a PostAttachment object. Got {type(attachment)} instead."
+                )
+        if all(isinstance(attachment, Image) for attachment in self.attachments):
+            if len(self.attachments) > 4:
+                raise ValueError("Maximum of 4 images allowed per post")
+        else:
+            if len(self.attachments) > 1:
+                raise ValueError("Only one non-image attachment allowed per post")
 
     def add_languages(self, languages: List[str]):
         """
@@ -142,7 +184,7 @@ class Post:
                 }
             )
         return spans
-    
+
     def _parse_hashtags(self) -> List[Dict]:
         """Parse the hashtags from the post.
 
@@ -287,17 +329,6 @@ class Post:
         if facets:
             self._post["facets"] = facets
 
-        if self._images:
-            self._post["embed"] = {
-                "$type": IMAGES_TYPE,
-                "images": [
-                    {"alt": image.alt_text, "image": image.build(session)}
-                    for image in self._images
-                ],
-            }
-        if self._video:
-            self._post["embed"] = {
-                "$type": VIDEO_TYPE,
-                "video": self._video.build(session)
-            }
+        for attachment in self.attachments:
+            attachment.attach_to_post(self, session)
         return self._post

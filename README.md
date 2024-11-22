@@ -21,7 +21,7 @@ client = Client()
 client.authenticate(user_name, password)
 
 image = Image('path/to/image.jpg', alt_text='This is an image.')
-post = Post('Hello, world!, This is my first post.', images=[image])
+post = Post('Hello, world!, This is my first post.', with_attachments=[image])
 client.post(post)
 ```
 
@@ -34,7 +34,7 @@ client = Client()
 client.authenticate(user_name, password)
 
 image = Image('path/to/image.jpg', alt_text='This is an image.')
-post = Post('Hello, world!, This is my first post.', images=[image])
+post = Post('Hello, world!, This is my first post.', with_attachments=[image])
 second_post = Post('Another Post')
 client.post_thread([post,second_post])
 ```
@@ -54,10 +54,33 @@ client = Client()
 client.authenticate(user_name, password)
 
 video = Video('path/to/video.mov')
-post = Post('Video Post', video=video)
+post = Post('Video Post', with_attachments=video)
 client.post(post)
 ```
 
+### Link Shortening
+Bluesky counts URL characters towards the 300 character limit.  The solution to this is to format your links.  `blueskysocial` supports markdown link formatting.  If you format your post text in the following fashion
+```python
+from blueskysocial import Client, Post
+
+client = Client()
+client.authenticate(user_name, password)
+post = Post('Hello, world!, This is my first post.  But with a link.  [Click here](http://really.long.url.here)'),
+clinet.post(post)
+```
+Your post text will be "Hello, world!, This is my first post. But with a link. Click here", with the words "Click here" being a link.  In this fashion, only the characters in "Click here" count towards the limit
+
+### Web Cards
+Webcards are the small preview images of a linked website that appear at the bottom of the posts and also serve as links.  You can embed a webcard with the following syntax
+```python
+from blueskysocial import Client, Post, WebCard
+
+client = Client()
+client.authenticate(user_name, password)
+webcard = WebCard("http://url_to_link_to.com/article")
+post = Post('Check out this article!', with_attachments=webcard)
+clinet.post(post)
+```
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 

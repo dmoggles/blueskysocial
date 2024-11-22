@@ -3,21 +3,39 @@ from unittest.mock import patch, MagicMock
 from blueskysocial.post import Post
 from blueskysocial.errors import SessionNotAuthenticatedError
 from blueskysocial.api_endpoints import MENTION_TYPE, LINK_TYPE
+from blueskysocial.image import Image
+from blueskysocial.video import Video
 
+
+class MockImage(Image):
+    def build(self, session):
+        return "image_blob"
+    
+    def _initialize(self):
+        pass
+    
+class MockVideo(
+    Video
+):
+    def build(self, session):
+        return "video_blob"
+
+    def _initialize(self):
+        pass
 
 class TestPost(unittest.TestCase):
     def test_init(self):
         content = "This is a test post"
         post = Post(content)
         self.assertEqual(post._post["text"], content)
-        self.assertEqual(post._images, [])
+        self.assertEqual(post.attachments, [])
 
     def test_init_with_images(self):
         content = "This is a test post"
-        images = [MagicMock(), MagicMock()]
+        images = [MagicMock(spec=Image), MagicMock(spec=Image)]
         post = Post(content, images)
         self.assertEqual(post._post["text"], content)
-        self.assertEqual(post._images, images)
+        self.assertEqual(post.attachments, images)
 
     def test_init_with_too_many_images(self):
         content = "This is a test post"
@@ -101,7 +119,7 @@ class TestPost(unittest.TestCase):
     def test_build_with_images(self):
         content = "This is a test post"
         session = {"accessJwt": "access_token"}
-        images = [MagicMock(), MagicMock()]
+        images = [MockImage('image_src1', 'alt_text1'), MockImage('image_src2', 'alt_text2')]
         post = Post(content, images)
         built_post = post.build(session)
         self.assertEqual(built_post["text"], content)
@@ -113,8 +131,8 @@ class TestPost(unittest.TestCase):
     def test_build_with_video(self):
         content = "This is a test post"
         session = {"accessJwt": "access_token"}
-        video = MagicMock()
-        video.build.return_value = "video_blob"
+        video = MockVideo("path/to/video.mp4")
+        
         post = Post(content, video=video)
         built_post = post.build(session)
         self.assertEqual(built_post["text"], content)
