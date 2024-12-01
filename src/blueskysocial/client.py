@@ -131,7 +131,7 @@ class Client:
             json={
                 "repo": self.did,
                 "collection": POST_TYPE,
-                "record": post.build(self._session),
+                "record": record,
             },
             timeout=10,
         )
