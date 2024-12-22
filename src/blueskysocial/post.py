@@ -325,7 +325,10 @@ class Post:
         )
         facets = self.parse_facets()
         if len(self._post["text"]) > 300:
-            raise Exception("Maximum of 300 characters allowed per post.  Post text: " + self._post["text"])
+            raise Exception(
+                "Maximum of 300 characters allowed per post.  Post text: "
+                + self._post["text"]
+            )
         if facets:
             self._post["facets"] = facets
 

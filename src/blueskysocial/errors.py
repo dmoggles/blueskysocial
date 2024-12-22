@@ -13,3 +13,15 @@ class SessionNotAuthenticatedError(Exception):
     Attributes:
         None
     """
+
+
+class InvalidUserHandleError(Exception):
+    """
+    Exception raised when a user is invalid.
+
+    This error is intended to be used when an operation requires a valid user handle,
+    but the user provided is invalid.
+
+    Attributes:
+        None
+    """

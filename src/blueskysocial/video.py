@@ -1,6 +1,7 @@
 import requests
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG, VIDEO_TYPE
 from blueskysocial.post_attachment import PostAttachment
+from blueskysocial.utils import get_auth_header
 
 VIDEO_MIME_TYPES_FROM_EXTENTIONS = {
     "mp4": "video/mp4",
@@ -43,12 +44,11 @@ class Video(PostAttachment):
             except KeyError:
                 raise Exception("Unsupported video format")
             access_token = session["accessJwt"]
+            headers = get_auth_header(access_token)
+            headers["Content-Type"] = mime_type
             resp = requests.post(
                 RPC_SLUG + UPLOAD_BLOB,
-                headers={
-                    "Authorization": f"Bearer " + access_token,
-                    "Content-Type": mime_type,
-                },
+                headers=headers,
                 data=stream,
             )
             resp.raise_for_status()

@@ -4,7 +4,7 @@ The client module contains the Client class which is used to
 interact with the BlueSky Social server.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Union
 import requests
 from blueskysocial.post import Post
 
@@ -13,9 +13,16 @@ from blueskysocial.api_endpoints import (
     CREATE_SESSION,
     CREATE_RECORD,
     POST_TYPE,
+    CHAT_SLUG,
+    LIST_CONVOS,
+    GET_CONVO_FOR_MEMBERS,
 )
 from blueskysocial.errors import SessionNotAuthenticatedError
 from blueskysocial.replies import get_reply_refs
+from blueskysocial.convos import Convo
+from blueskysocial.convos.filters import Filter
+from blueskysocial.utils import get_auth_header
+from blueskysocial.handle_resolver import resolve_handle
 
 
 class Client:
@@ -27,6 +34,15 @@ class Client:
 
     def __init__(self):
         self._session = None
+
+    @property
+    def handle(self):
+        """The handle of the client.
+
+        Returns:
+            str: The handle of the client.
+        """
+        return self._session["handle"]
 
     @property
     def access_token(self):
@@ -85,7 +101,7 @@ class Client:
 
         response = requests.post(
             RPC_SLUG + CREATE_RECORD,
-            headers={"Authorization": f"Bearer {self.access_token}"},
+            headers=get_auth_header(self.access_token),
             json={
                 "repo": self.did,
                 "collection": POST_TYPE,
@@ -127,7 +143,7 @@ class Client:
         record["reply"] = references
         response = requests.post(
             RPC_SLUG + CREATE_RECORD,
-            headers={"Authorization": f"Bearer {self.access_token}"},
+            headers=get_auth_header(self.access_token),
             json={
                 "repo": self.did,
                 "collection": POST_TYPE,
@@ -166,3 +182,68 @@ class Client:
             prev_post_return = response
 
         return responses
+
+    def get_convos(self, filter: Filter = None) -> List[Convo]:
+        """
+        Retrieve a list of conversations.
+
+        Args:
+            filter (Filter, optional): A filter to apply to the conversations. Defaults to None.
+
+        Returns:
+            List[Convo]: A list of Convo objects that match the filter criteria.
+
+        Raises:
+            requests.exceptions.HTTPError: If the HTTP request returned an unsuccessful status code.
+        """
+        response = requests.get(
+            CHAT_SLUG + LIST_CONVOS,
+            headers=get_auth_header(self.access_token),
+        )
+        response.raise_for_status()
+        convos = response.json()
+        return [
+            Convo(convo, self._session)
+            for convo in convos["convos"]
+            if not filter or filter.evaluate(Convo(convo, self._session))
+        ]
+
+    def get_convo_for_members(self, members: Union[List[str], str]) -> Convo:
+        """
+        Retrieve a conversation for the specified members.
+
+        Args:
+            members (Union[List[str], str]): A list of member handles or a single member handle.
+                                                A maximum of 10 members can be in a conversation.
+
+        Returns:
+            Convo: An instance of the Convo class representing the conversation.
+
+        Raises:
+            AssertionError: If the number of members exceeds 10.
+            requests.exceptions.HTTPError: If the HTTP request returned an unsuccessful status code.
+        """
+        if isinstance(members, str):
+            members = [members]
+        assert len(members) <= 10, "A maximum of 10 members can be in a conversation."
+        member_dids = [resolve_handle(member, self.access_token) for member in members]
+        response = requests.get(
+            CHAT_SLUG + GET_CONVO_FOR_MEMBERS,
+            headers=get_auth_header(self.access_token),
+            params={"members": member_dids},
+        )
+        response.raise_for_status()
+        convo = response.json()["convo"]
+        return Convo(convo, self._session)
+
+    def resolve_handle(self, handle: str) -> str:
+        """
+        Resolves a given handle to its corresponding identifier using the access token.
+
+        Args:
+            handle (str): The handle to be resolved.
+
+        Returns:
+            str: The resolved identifier for the given handle.
+        """
+        return resolve_handle(handle, self.access_token)

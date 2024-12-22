@@ -21,3 +21,20 @@ def parse_uri(uri: str) -> Dict:
         "collection": collection,
         "rkey": rkey,
     }
+
+
+def get_auth_header(token: str, headers: Dict[str, str] = None) -> Dict[str, str]:
+    """
+    Returns a dictionary containing the Authorization header with the given token.
+
+    Args:
+        token (str): The token to use for the Authorization header.
+        headers (Dict[str, str], optional): Additional headers to include. Defaults to None.
+
+    Returns:
+        Dict[str, str]: A dictionary containing the Authorization header with the given token.
+    """
+    if headers is None:
+        headers = {}
+    headers["Authorization"] = f"Bearer {token}"
+    return headers

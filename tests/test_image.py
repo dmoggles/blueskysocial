@@ -48,7 +48,7 @@ class TestImage(unittest.TestCase):
         url = "https://example.com/image.jpg"
         image_data = b"example image data"
         mock_get.return_value.content = image_data
-        image = Image(url, 'alt text')
+        image = Image(url, "alt text")
 
         mock_get.assert_called_once_with(url)
         self.assertEqual(image._image, image_data)
@@ -57,13 +57,13 @@ class TestImage(unittest.TestCase):
     def test_get_image_from_file(self, mock_open):
         file_path = "/path/to/image.jpg"
         image_data = b"example image data"
-        image = Image(file_path, 'alt text')
+        image = Image(file_path, "alt text")
         mock_open.assert_called_once_with(file_path, "rb")
         self.assertEqual(image._image, image_data)
 
     def test_get_image_from_file_handle(self):
         file_handle = BytesIO(b"example image data")
-        image = Image(file_handle, 'alt text')
+        image = Image(file_handle, "alt text")
         self.assertEqual(image._image, b"example image data")
 
     @patch("requests.post")
@@ -71,7 +71,7 @@ class TestImage(unittest.TestCase):
         session = {"accessJwt": "access_token"}
         image_data = b"example image data"
         mock_post.return_value.json.return_value = {"blob": "uploaded_blob"}
-        image = Image(MagicMock(), 'alt text')
+        image = Image(MagicMock(), "alt text")
         image._image = image_data
         result = image.build(session)
         mock_post.assert_called_once_with(

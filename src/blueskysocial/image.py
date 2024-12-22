@@ -3,6 +3,7 @@ from io import BytesIO
 import requests
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG, IMAGES_TYPE
 from blueskysocial.post_attachment import PostAttachment
+from blueskysocial.utils import get_auth_header
 
 IMAGE_MIMETYPE = "image/png"
 
@@ -100,12 +101,11 @@ class Image(PostAttachment):
             dict: The response JSON containing the uploaded image blob.
         """
         access_token = session["accessJwt"]
+        headers = get_auth_header(access_token)
+        headers["Content-Type"] = IMAGE_MIMETYPE
         resp = requests.post(
             RPC_SLUG + UPLOAD_BLOB,
-            headers={
-                "Content-Type": IMAGE_MIMETYPE,
-                "Authorization": "Bearer " + access_token,
-            },
+            headers=headers,
             data=self._image,
         )
         resp.raise_for_status()
