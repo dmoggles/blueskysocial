@@ -2,4 +2,21 @@
 requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
+[project]
+dynamic = ["version", "description", "readme", "classifiers", "authors", "license", "requires-python"]
+name = "blueskysocial"
+
+
+dependencies = [
+    "requests","BeautifulSoup4"
+]
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "pre-commit",
+    "pylint",
+    "joblib "
+]
+
 [tool.setuptools_scm]
