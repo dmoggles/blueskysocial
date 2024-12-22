@@ -81,6 +81,58 @@ webcard = WebCard("http://url_to_link_to.com/article")
 post = Post('Check out this article!', with_attachments=webcard)
 clinet.post(post)
 ```
+
+## Direct Messsage Interface
+
+
+Get all convos and show the member and last message of the last conversation
+```python
+convos = client.get_convos()
+print(convos[-1].participant)
+print(convos[-1].last_message)
+```
+
+Get convos based ona filter.  Many other filters are available, this is not an exhaustive list
+
+```python
+convos = client.get_convos(
+    bs.F.And(
+        bs.F.Eq(bs.F.Participant, 'someusername.bsky.social'),
+        bs.F.GT(bs.F.LastMessageTime, '2024-01-01')
+    )
+)
+print(convos[-1].participant)
+print(convos[-1].last_message)
+```
+
+Get all messages in a conversation
+```python
+messages = convos[-1].get_messages()
+print(messages[0].sent_at)
+print(messages[-1].sent_at)
+print(messages[0].text)
+```
+
+Please notice that the message list is ordered such that last message is first
+```
+2024-11-26 12:47:31.704000
+2024-11-22 22:33:38.323000
+Great stuff!
+```
+
+Get a conversation with a specific member or members.  This is also how you create a new conversation if you want to DM someone you haven't sent messages to before
+
+```python
+convo = client.get_convo_for_members('someusername.bsky.social')
+```
+
+Send a message
+
+```python
+convo.send_message('Hello, World!')
+```
+
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 

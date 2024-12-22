@@ -3,6 +3,7 @@ from unittest.mock import patch, mock_open
 from blueskysocial.video import Video, VIDEO_MIME_TYPES_FROM_EXTENTIONS
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG
 
+
 class TestVideo(unittest.TestCase):
     @patch("builtins.open", new_callable=mock_open, read_data=b"example video data")
     @patch("requests.post")
@@ -39,5 +40,3 @@ class TestVideo(unittest.TestCase):
         self.assertTrue("Unsupported video format" in str(context.exception))
         mock_open.assert_called_once_with(file_path, "rb")
         mock_post.assert_not_called()
-
- 

@@ -126,6 +126,101 @@ class TestClient(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self.client.post_thread(posts)
 
+    @patch("requests.get")
+    def test_get_convos_success(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "convos": [
+                {"id": "convo1", "messages": []},
+                {"id": "convo2", "messages": []},
+            ]
+        }
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        result = self.client.get_convos()
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].convo_id, "convo1")
+        self.assertEqual(result[1].convo_id, "convo2")
+        mock_get.assert_called_with(
+            "https://api.bsky.chat/xrpc/chat.bsky.convo.listConvos",
+            headers={"Authorization": "Bearer access_token"},
+        )
+
+    @patch("requests.get")
+    def test_get_convos_with_filter(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            "convos": [
+                {"id": "convo1", "messages": []},
+                {"id": "convo2", "messages": []},
+            ]
+        }
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        mock_filter = MagicMock()
+        mock_filter.evaluate.side_effect = lambda convo: convo.convo_id == "convo1"
+        result = self.client.get_convos(mock_filter)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].convo_id, "convo1")
+        mock_get.assert_called_with(
+            "https://api.bsky.chat/xrpc/chat.bsky.convo.listConvos",
+            headers={"Authorization": "Bearer access_token"},
+        )
+
+    @patch("requests.get")
+    def test_get_convos_failure(self, mock_get):
+        mock_get.return_value.raise_for_status.side_effect = requests.HTTPError("Error")
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        with self.assertRaises(requests.HTTPError):
+            self.client.get_convos()
+
+    @patch("requests.get")
+    @patch("blueskysocial.client.resolve_handle")
+    def test_get_convo_for_members_success(self, mock_resolve_handle, mock_get):
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        mock_resolve_handle.side_effect = lambda handle, token: f"did:{handle}"
+        mock_get.return_value.json.return_value = {
+            "convo": {"id": "convo1", "messages": []}
+        }
+        members = ["user1", "user2"]
+        result = self.client.get_convo_for_members(members)
+        self.assertEqual(result.convo_id, "convo1")
+        mock_resolve_handle.assert_any_call("user1", "access_token")
+        mock_resolve_handle.assert_any_call("user2", "access_token")
+        mock_get.assert_called_with(
+            "https://api.bsky.chat/xrpc/chat.bsky.convo.getConvoForMembers",
+            headers={"Authorization": "Bearer access_token"},
+            params={"members": ["did:user1", "did:user2"]},
+        )
+
+    def test_get_convo_for_members_too_many_members(self):
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        members = ["user" + str(i) for i in range(11)]
+        with self.assertRaises(AssertionError):
+            self.client.get_convo_for_members(members)
+
+    @patch("requests.get")
+    @patch("blueskysocial.client.resolve_handle")
+    def test_get_convo_for_members_failure(self, mock_resolve_handle, mock_get):
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        mock_resolve_handle.side_effect = lambda handle, token: f"did:{handle}"
+        mock_get.return_value.raise_for_status.side_effect = requests.HTTPError("Error")
+        members = ["user1", "user2"]
+        with self.assertRaises(requests.HTTPError):
+            self.client.get_convo_for_members(members)
+
+    @patch("blueskysocial.client.resolve_handle")
+    def test_resolve_handle_success(self, mock_resolve_handle):
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        mock_resolve_handle.return_value = "did:example"
+        result = self.client.resolve_handle("example_handle")
+        self.assertEqual(result, "did:example")
+        mock_resolve_handle.assert_called_with("example_handle", "access_token")
+
+    @patch("blueskysocial.client.resolve_handle")
+    def test_resolve_handle_failure(self, mock_resolve_handle):
+        self.client._session = {"accessJwt": "access_token", "did": "did"}
+        mock_resolve_handle.side_effect = requests.HTTPError("Error")
+        with self.assertRaises(requests.HTTPError):
+            self.client.resolve_handle("example_handle")
+        mock_resolve_handle.assert_called_with("example_handle", "access_token")
+
 
 if __name__ == "__main__":
     unittest.main()

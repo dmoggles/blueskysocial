@@ -3,6 +3,7 @@ from typing import Dict
 import requests
 from blueskysocial.api_endpoints import RPC_SLUG, UPLOAD_BLOB
 from blueskysocial.post_attachment import PostAttachment
+from blueskysocial.utils import get_auth_header
 
 IMAGE_MIMETYPE = "image/png"
 
@@ -43,13 +44,11 @@ class WebCard(PostAttachment):
                 img_url = url + img_url
             resp = requests.get(img_url)
             resp.raise_for_status()
-
+            headers = get_auth_header(access_token)
+            headers["Content-Type"] = IMAGE_MIMETYPE
             blob_resp = requests.post(
                 RPC_SLUG + UPLOAD_BLOB,
-                headers={
-                    "Content-Type": IMAGE_MIMETYPE,
-                    "Authorization": "Bearer " + access_token,
-                },
+                headers=headers,
                 data=resp.content,
             )
             blob_resp.raise_for_status()
@@ -62,6 +61,10 @@ class WebCard(PostAttachment):
 
     def attach_to_post(self, post, session: dict):
         try:
-            post.post["embed"] = self.fetch_embed_url_card(session["accessJwt"], self._url)
+            post.post["embed"] = self.fetch_embed_url_card(
+                session["accessJwt"], self._url
+            )
         except Exception as e:
-            raise RuntimeError(f"Failed to fetch embed card for {self._url}: {e}") from e
+            raise RuntimeError(
+                f"Failed to fetch embed card for {self._url}: {e}"
+            ) from e

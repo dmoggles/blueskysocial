@@ -10,18 +10,18 @@ from blueskysocial.video import Video
 class MockImage(Image):
     def build(self, session):
         return "image_blob"
-    
+
     def _initialize(self):
         pass
-    
-class MockVideo(
-    Video
-):
+
+
+class MockVideo(Video):
     def build(self, session):
         return "video_blob"
 
     def _initialize(self):
         pass
+
 
 class TestPost(unittest.TestCase):
     def test_init(self):
@@ -119,7 +119,10 @@ class TestPost(unittest.TestCase):
     def test_build_with_images(self):
         content = "This is a test post"
         session = {"accessJwt": "access_token"}
-        images = [MockImage('image_src1', 'alt_text1'), MockImage('image_src2', 'alt_text2')]
+        images = [
+            MockImage("image_src1", "alt_text1"),
+            MockImage("image_src2", "alt_text2"),
+        ]
         post = Post(content, images)
         built_post = post.build(session)
         self.assertEqual(built_post["text"], content)
@@ -132,7 +135,7 @@ class TestPost(unittest.TestCase):
         content = "This is a test post"
         session = {"accessJwt": "access_token"}
         video = MockVideo("path/to/video.mp4")
-        
+
         post = Post(content, video=video)
         built_post = post.build(session)
         self.assertEqual(built_post["text"], content)
@@ -147,8 +150,6 @@ class TestPost(unittest.TestCase):
         video = MagicMock()
         with self.assertRaises(Exception):
             Post(content, images, video)
-
-                   
 
     def test_build_too_long_post(self):
         content = "This is a test post" * 1000
@@ -192,6 +193,7 @@ class TestPost(unittest.TestCase):
         post = Post(content)
         hashtags = post._parse_hashtags()
         self.assertEqual(len(hashtags), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
