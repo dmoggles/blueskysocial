@@ -2,6 +2,12 @@
 
 blueskysocial is a Python library for managing social media posts and images. It provides a Client class for interacting with social media platforms, as well as classes for representing posts and images.
 
+## Important Note About Issues
+
+While I welcome issues and try to work on them, I also have come to realise that I frequently don't see them. 
+
+**If you submit an issue, I kindly ask that you also send me a message to https://bsky.app/profile/dmitry.mclachbot.com to let me know about it**
+
 ## Installation
 
 To install blueskysocial, you can use pip:
