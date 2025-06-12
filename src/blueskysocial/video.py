@@ -27,12 +27,13 @@ class Video(PostAttachment):
         and returns the blob information from the server response.
     """
 
-    def __init__(self, path: str):
+    def __init__(self, path: str, alt_text: str = ""):
         self._path = path
         self._upload_blob = None
+        self._alt_text = alt_text
 
     def attach_to_post(self, post, session):
-        post.post["embed"] = {"$type": VIDEO_TYPE, "video": self.build(session)}
+        post.post["embed"] = {"$type": VIDEO_TYPE, "video": self.build(session), "alt": self.alt_text}
 
     def build(self, session: dict) -> dict:
         if self._upload_blob is None:
@@ -54,3 +55,13 @@ class Video(PostAttachment):
             resp.raise_for_status()
             self._upload_blob = resp.json()
         return self._upload_blob["blob"]
+
+    @property
+    def alt_text(self):
+        """
+        Returns the alternative text for the image.
+
+        :return: The alternative text for the image.
+        :rtype: str
+        """
+        return self._alt_text
