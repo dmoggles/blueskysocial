@@ -108,6 +108,51 @@ class Post:
         self._post["langs"] = languages
         return self
 
+    def _byte_index_to_char_index(self, text: str, byte_index: int) -> int:
+        """
+        Convert a byte index to a character index in a Unicode string.
+
+        Args:
+            text (str): The Unicode string
+            byte_index (int): The byte index in the UTF-8 encoded version of the string
+
+        Returns:
+            int: The corresponding character index in the Unicode string
+        """
+        if byte_index == 0:
+            return 0
+
+        # Get the UTF-8 bytes up to the byte_index
+        text_bytes = text.encode("utf-8")
+        if byte_index >= len(text_bytes):
+            return len(text)
+
+        # Decode the bytes up to byte_index back to characters
+        # Use 'ignore' to handle partial multi-byte characters
+        partial_text = text_bytes[:byte_index].decode("utf-8", errors="ignore")
+        return len(partial_text)
+
+    def _char_index_to_byte_index(self, text: str, char_index: int) -> int:
+        """
+        Convert a character index to a byte index in the UTF-8 encoded version of a Unicode string.
+
+        Args:
+            text (str): The Unicode string
+            char_index (int): The character index in the Unicode string
+
+        Returns:
+            int: The corresponding byte index in the UTF-8 encoded version
+        """
+        if char_index == 0:
+            return 0
+
+        if char_index >= len(text):
+            return len(text.encode("utf-8"))
+
+        # Get the characters up to char_index and encode to get byte length
+        char_substring = text[:char_index]
+        return len(char_substring.encode("utf-8"))
+
     def _handle_first_rich_url(self) -> Dict:
         """
         Handle the first rich url in the post.
@@ -124,16 +169,32 @@ class Post:
 
         m = re.search(regex, text_bytes)
         if m:
+            # Convert byte indices to character indices
+            char_start_bracket = self._byte_index_to_char_index(self._post["text"], m.start(0))
+            char_start_text = self._byte_index_to_char_index(self._post["text"], m.start(1))
+            char_end_text = self._byte_index_to_char_index(self._post["text"], m.end(1))
+            char_end_full = self._byte_index_to_char_index(self._post["text"], m.end(0))
+            
+            # Reconstruct the text by removing the markdown syntax but keeping the link text
+            new_text = (
+                self._post["text"][:char_start_bracket]
+                + self._post["text"][char_start_text:char_end_text]
+                + self._post["text"][char_end_full:]
+            )
+            
+            # Calculate the new position of the link text in the processed text
+            # It starts where the bracket was, since we remove the bracket
+            new_start = char_start_bracket
+            new_end = char_start_bracket + (char_end_text - char_start_text)
+            
             span = {
-                "start": m.start(1) - 1,
-                "end": m.end(1) - 1,
+                "start": new_start,
+                "end": new_end,
                 "url": m.group(2).decode("UTF-8"),
             }
-            self._post["text"] = (
-                self._post["text"][: m.start(1) - 1]
-                + self._post["text"][m.start(1) : m.end(1)]
-                + self._post["text"][m.end() :]
-            )
+            
+            # Update the post text
+            self._post["text"] = new_text
             return span
         return None
 
@@ -178,8 +239,8 @@ class Post:
         for m in re.finditer(mention_regex, text_bytes):
             spans.append(
                 {
-                    "start": m.start(1),
-                    "end": m.end(1),
+                    "start": self._byte_index_to_char_index(self._post["text"], m.start(1)),
+                    "end": self._byte_index_to_char_index(self._post["text"], m.end(1)),
                     "handle": m.group(1)[1:].decode("UTF-8"),
                 }
             )
@@ -202,8 +263,8 @@ class Post:
         for m in re.finditer(hashtag_regex, text_bytes):
             spans.append(
                 {
-                    "start": m.start(1),
-                    "end": m.end(1),
+                    "start": self._byte_index_to_char_index(self._post["text"], m.start(1)),
+                    "end": self._byte_index_to_char_index(self._post["text"], m.end(1)),
                     "tag": m.group(1)[1:].decode("UTF-8"),
                 }
             )
@@ -218,8 +279,8 @@ class Post:
         for m in re.finditer(url_regex, text_bytes):
             spans.append(
                 {
-                    "start": m.start(1),
-                    "end": m.end(1),
+                    "start": self._byte_index_to_char_index(self._post["text"], m.start(1)),
+                    "end": self._byte_index_to_char_index(self._post["text"], m.end(1)),
                     "url": m.group(1).decode("UTF-8"),
                 }
             )
@@ -241,8 +302,8 @@ class Post:
             facets.append(
                 {
                     "index": {
-                        "byteStart": u["start"],
-                        "byteEnd": u["end"],
+                        "byteStart": self._char_index_to_byte_index(self._post["text"], u["start"]),
+                        "byteEnd": self._char_index_to_byte_index(self._post["text"], u["end"]),
                     },
                     "features": [
                         {
@@ -266,8 +327,8 @@ class Post:
             facets.append(
                 {
                     "index": {
-                        "byteStart": m["start"],
-                        "byteEnd": m["end"],
+                        "byteStart": self._char_index_to_byte_index(self._post["text"], m["start"]),
+                        "byteEnd": self._char_index_to_byte_index(self._post["text"], m["end"]),
                     },
                     "features": [{"$type": MENTION_TYPE, "did": did}],
                 }
@@ -276,8 +337,8 @@ class Post:
             facets.append(
                 {
                     "index": {
-                        "byteStart": u["start"],
-                        "byteEnd": u["end"],
+                        "byteStart": self._char_index_to_byte_index(self._post["text"], u["start"]),
+                        "byteEnd": self._char_index_to_byte_index(self._post["text"], u["end"]),
                     },
                     "features": [
                         {
@@ -292,8 +353,8 @@ class Post:
             facets.append(
                 {
                     "index": {
-                        "byteStart": h["start"],
-                        "byteEnd": h["end"],
+                        "byteStart": self._char_index_to_byte_index(self._post["text"], h["start"]),
+                        "byteEnd": self._char_index_to_byte_index(self._post["text"], h["end"]),
                     },
                     "features": [
                         {
