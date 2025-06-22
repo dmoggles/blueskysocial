@@ -24,10 +24,14 @@ Example:
 """
 
 import requests
-from typing import cast
+from typing import cast, Optional, Tuple, Callable, Dict
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG, VIDEO_TYPE
 from blueskysocial.post_attachment import PostAttachment
-from blueskysocial.utils import get_auth_header
+from blueskysocial.utils import (
+    get_auth_header,
+    provide_aspect_ratio,
+    get_video_aspect_ratio_spec,
+)
 from blueskysocial.typedefs import PostProtocol, ApiPayloadType, as_str
 
 VIDEO_MIME_TYPES_FROM_EXTENSIONS = {
@@ -89,7 +93,13 @@ class Video(PostAttachment):
         video.attach_to_post(post, session)
     """
 
-    def __init__(self, path: str, alt_text: str = "") -> None:
+    def __init__(
+        self,
+        path: str,
+        alt_text: str = "",
+        aspect_ratio: Optional[Tuple[int, int]] = None,
+        require_aspect_ratio: bool = False,
+    ) -> None:
         """
         Initialize a Video attachment with file path and optional alternative text.
 
@@ -105,6 +115,20 @@ class Video(PostAttachment):
                                     content for accessibility purposes. Defaults to
                                     empty string. Should describe the video content
                                     for users who cannot view the video.
+
+            aspect_ratio (Optional[Tuple[int, int]], optional): Aspect ratio of the video
+                                                            in the format (width, height).
+                                                            This is used for display
+                                                            purposes in the post embed.
+                                                            If not provided, the aspect ratio
+                                                            will be attempted to be set automatically
+                                                            based on the video file metadata.
+            require_aspect_ratio (Optional[bool], optional): If True, the aspect ratio
+                                                            must either be provided
+                                                            or automatically determined from the video file
+                                                            and if it cannot be determined,
+                                                            an error will be raised.
+                                                            If False, the aspect ratio is optional.
 
         Raises:
             FileNotFoundError: If the specified video file path does not exist
@@ -123,6 +147,8 @@ class Video(PostAttachment):
         self._path = path
         self._upload_blob: ApiPayloadType = {}
         self._alt_text = alt_text
+        self._aspect_ratio = aspect_ratio
+        self._require_aspect_ratio = require_aspect_ratio
 
     def attach_to_post(self, post: PostProtocol, session: ApiPayloadType) -> None:
         """
@@ -157,11 +183,15 @@ class Video(PostAttachment):
             # The post now has video embedded
             # post.post["embed"] contains the video information
         """
-        post.post["embed"] = {
+        video_embed: ApiPayloadType = {
             "$type": VIDEO_TYPE,
             "video": self.build(session),
             "alt": self.alt_text,
         }
+        aspect_ratio = provide_aspect_ratio(self)
+        if aspect_ratio:
+            video_embed["aspectRatio"] = aspect_ratio
+        post.post["embed"] = video_embed
 
     def build(self, session: ApiPayloadType) -> ApiPayloadType:
         """
@@ -253,3 +283,56 @@ class Video(PostAttachment):
             # Output: Alt text: ''
         """
         return self._alt_text
+
+    @property
+    def data_accessor(self) -> str:
+        """
+        Get the file path of the video data accessor.
+        This property returns the file system path to the video file that this
+        Video instance represents. It is used to access the video file for
+        reading and uploading to the BlueSky API.
+        """
+        return self._path
+
+    @property
+    def aspect_ratio(self) -> Optional[Tuple[int, int]]:
+        """
+        Get the aspect ratio of the video.
+        Returns the aspect ratio as a tuple of (width, height) if it was provided
+        during initialization or determined automatically. If no aspect ratio is
+        available, returns None.
+        Returns:
+            Optional[Tuple[int, int]]: The aspect ratio of the video as a tuple
+                                       (width, height) or None if not available.
+
+        Example:
+            video = Video("demo.mp4", aspect_ratio=(16, 9))
+            print(video.aspect_ratio)  # Output: (16, 9)
+            video2 = Video("clip.mp4")
+            print(video2.aspect_ratio)  # Output: None (if not set or determined)
+
+        """
+        return self._aspect_ratio
+
+    @property
+    def require_aspect_ratio(self) -> bool:
+        """
+        Check if the image requires an aspect ratio.
+
+        Returns True if the image requires an aspect ratio to be provided,
+        otherwise returns False. This is used to determine if aspect ratio
+        validation should be enforced during post attachment.
+
+        Returns:
+            bool: True if aspect ratio is required, False otherwise.
+        """
+        return self._require_aspect_ratio
+
+    @property
+    def aspect_ratio_function(self) -> Callable[[str], Optional[Dict[str, int]]]:
+        """
+        Get the function to provide aspect ratio for the video.
+        Returns a function that takes the video data as input and returns
+        the aspect ratio as a dictionary with 'width' and 'height' keys.
+        """
+        return get_video_aspect_ratio_spec

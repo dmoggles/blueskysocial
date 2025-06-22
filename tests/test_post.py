@@ -121,7 +121,11 @@ class TestPost(unittest.TestCase):
         self.assertNotIn("facets", built_post)
         self.assertNotIn("embed", built_post)
 
-    def test_build_with_images(self):
+    @patch(
+        "blueskysocial.image.get_image_aspect_ratio_spec",
+        return_value={"width": 1, "height": 2},
+    )
+    def test_build_with_images(self, mock_get_image_aspect_ratio):
         content = "This is a test post"
         session = {"accessJwt": "access_token"}
         images = [
@@ -135,6 +139,12 @@ class TestPost(unittest.TestCase):
         self.assertNotIn("facets", built_post)
         self.assertIn("embed", built_post)
         self.assertEqual(len(built_post["embed"]["images"]), 2)
+        self.assertEqual(built_post["embed"]["images"][0]["image"], "image_blob")
+        self.assertEqual(built_post["embed"]["images"][0]["alt"], "alt_text1")
+        self.assertEqual(
+            built_post["embed"]["images"][0]["aspectRatio"], {"width": 1, "height": 2}
+        )
+        mock_get_image_aspect_ratio.assert_called_with(b"mock_image_blob")
 
     def test_build_with_video(self):
         content = "This is a test post"

@@ -113,3 +113,15 @@ class InvalidAttachmentsError(Exception):
     Attributes:
         None
     """
+
+
+class UnknownAspectRatioError(Exception):
+    """
+    Exception raised when the aspect ratio of an image is unknown.
+
+    This error is intended to be used when an operation requires a known aspect ratio,
+    but the aspect ratio of the provided image cannot be determined.
+
+    Attributes:
+        None
+    """

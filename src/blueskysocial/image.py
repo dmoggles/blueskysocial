@@ -39,12 +39,16 @@ Example:
     post = Post("Check this out!", with_attachments=image)
 """
 
-from typing import Union, Optional, List, cast
+from typing import Union, List, cast, Optional, Tuple, Callable, Dict
 from io import BytesIO
 import requests
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG, IMAGES_TYPE
 from blueskysocial.post_attachment import PostAttachment
-from blueskysocial.utils import get_auth_header
+from blueskysocial.utils import (
+    get_auth_header,
+    get_image_aspect_ratio_spec,
+    provide_aspect_ratio,
+)
 from blueskysocial.errors import ImageIsTooLargeError
 from blueskysocial.typedefs import ApiPayloadType, PostProtocol, as_str
 
@@ -120,7 +124,13 @@ class Image(PostAttachment):
         post = Post("Photo gallery!", with_attachments=images)
     """
 
-    def __init__(self, image: Union[str, BytesIO], alt_text: str) -> None:
+    def __init__(
+        self,
+        image: Union[str, BytesIO],
+        alt_text: str,
+        aspect_ratio: Optional[Tuple[int, int]] = None,
+        require_aspect_ratio: bool = False,
+    ) -> None:
         """
         Initialize an Image attachment with source and alternative text.
 
@@ -159,7 +169,9 @@ class Image(PostAttachment):
                 image = Image(buffer, alt_text="Chart showing sales data")
         """
         self._alt_text = alt_text
-        self._image: Optional[bytes] = self._set_image(image)
+        self._image = self._set_image(image)
+        self._aspect_ratio = aspect_ratio
+        self._require_aspect_ratio = require_aspect_ratio
 
     @property
     def alt_text(self) -> str:
@@ -380,7 +392,10 @@ class Image(PostAttachment):
             #     ]
             # }
         """
+        aspect_ratio = provide_aspect_ratio(self)
         img_dict: ApiPayloadType = {"alt": self.alt_text, "image": self.build(session)}
+        if aspect_ratio:
+            img_dict["aspectRatio"] = aspect_ratio
         post.embed["$type"] = IMAGES_TYPE
         if "images" not in post.embed:
             post.embed["images"] = [img_dict]
@@ -444,7 +459,66 @@ class Image(PostAttachment):
         resp = requests.post(
             RPC_SLUG + UPLOAD_BLOB,
             headers=headers,
-            data=self._image,
+            data=self.data_accessor,
         )
         resp.raise_for_status()
         return cast(ApiPayloadType, resp.json()["blob"])
+
+    @property
+    def data_accessor(self) -> bytes:
+        """
+        Get the raw image data in bytes.
+
+
+        Returns:
+            bytes: The raw image data in PNG format ready for upload
+
+        Examples:
+            image = Image("photo.jpg", alt_text="A beautiful sunset")
+            raw_data = image.data_accessor
+            # raw_data contains the bytes of the image
+        """
+        return self._image
+
+    @property
+    def aspect_ratio(self) -> Optional[Tuple[int, int]]:
+        """
+        Get the aspect ratio of the image if available.
+
+        Returns the aspect ratio tuple (width, height) if it was provided during
+        initialization or calculated. If no aspect ratio is set, returns None.
+
+        Returns:
+            Optional[Tuple[int, int]]: The aspect ratio of the image as a tuple
+                                       of (width, height) or None if not set.
+
+        """
+        return self._aspect_ratio
+
+    @property
+    def require_aspect_ratio(self) -> bool:
+        """
+        Check if the image requires an aspect ratio.
+
+        Returns True if the image requires an aspect ratio to be provided,
+        otherwise returns False. This is used to determine if aspect ratio
+        validation should be enforced during post attachment.
+
+        Returns:
+            bool: True if aspect ratio is required, False otherwise.
+        """
+        return self._require_aspect_ratio
+
+    @property
+    def aspect_ratio_function(self) -> Callable[[bytes], Optional[Dict[str, int]]]:
+        """
+        Get the function to provide aspect ratio for the image.
+
+        Returns a callable that returns the aspect ratio of the image if available.
+        This allows dynamic aspect ratio retrieval based on the current image state.
+
+        Returns:
+            callable: A function that returns the aspect ratio tuple (width, height)
+                      or None if not set.
+        """
+        return get_image_aspect_ratio_spec
