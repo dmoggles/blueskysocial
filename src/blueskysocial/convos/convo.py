@@ -32,14 +32,19 @@ Note:
     conversations. Direct instantiation requires proper session authentication.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, cast
 import datetime as dt
 import requests
 from blueskysocial.convos.message import DirectMessage
 from blueskysocial.convos.filters import Filter
-from blueskysocial.api_endpoints import CHAT_SLUG, GET_MESSAGES, SEND_MESSAGE
+from blueskysocial.api_endpoints import (
+    CHAT_SLUG,
+    GET_MESSAGES,
+    SEND_MESSAGE,
+    GET_MESSAGE_MAX_LIMIT,
+)
 from blueskysocial.utils import get_auth_header
-from blueskysocial.typedefs import as_str, as_bool, as_int
+from blueskysocial.typedefs import as_str, as_bool, as_int, ApiPayloadType
 
 
 class Convo:
@@ -272,11 +277,111 @@ class Convo:
             self._raw_json["lastMessage"]["sentAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
 
-    def get_messages(self, msg_filter: Optional[Filter] = None) -> List[DirectMessage]:
+    def _raw_get_messages(
+        self, limit: int = 50, cursor: Optional[str] = None
+    ) -> ApiPayloadType:
+        """Internal method to fetch raw messages from the server.
+
+        This method retrieves the most recent messages in the conversation
+        directly from the BlueSky server without applying any filters. It is
+        intended for internal use by the get_messages method.
+
+        Args:
+            limit (int): The maximum number of messages to retrieve. Defaults to 50.
+                         The limit cannot be higher than 100 (based on API constraints) and
+                         will be capped at that value if exceeded.
+
+        Returns:
+            List[Dict[str, Any]]: A list of raw message data dictionaries.
+
+        Raises:
+            requests.HTTPError: If the request fails due to authentication issues,
+                              network problems, or server errors.
+            requests.Timeout: If the request times out.
+            KeyError: If the response format is unexpected or missing required fields.
+        """
+        limit = min(limit, 100)  # Cap limit to 100 based on API constraints
+        if cursor:
+            response = requests.get(
+                CHAT_SLUG
+                + GET_MESSAGES
+                + "?convoId="
+                + self.convo_id
+                + f"&limit={limit}&cursor={cursor}",
+                headers=get_auth_header(self._session["accessJwt"]),
+            )
+        else:
+            response = requests.get(
+                CHAT_SLUG
+                + GET_MESSAGES
+                + "?convoId="
+                + self.convo_id
+                + f"&limit={limit}",
+                headers=get_auth_header(self._session["accessJwt"]),
+            )
+        response.raise_for_status()
+        return cast(ApiPayloadType, response.json())
+
+    def _raw_get_messages_paginated(
+        self, limit: int = 50, cursor: Optional[str] = None
+    ) -> List[ApiPayloadType]:
+        """Retrieve messages from the conversation with pagination support using recursion.
+
+        This method fetches messages in pages, allowing retrieval of more than
+        the default limit by handling pagination through cursors. It uses recursion
+        to accumulate messages across multiple API calls.
+
+        Args:
+            limit (int): The maximum number of messages to retrieve. Defaults to 50.
+                         The limit cannot be higher than 100 (based on API constraints) and
+                         will be capped at that value if exceeded.
+            cursor (Optional[str]): The pagination cursor for continuing from a previous
+                                   request. Used internally for recursive calls.
+
+        Returns:
+            List[Dict[str, Any]]: A list of raw message data dictionaries.
+
+        Raises:
+            requests.HTTPError: If the request fails due to authentication issues,
+                              network problems, or server errors.
+            requests.Timeout: If the request times out.
+            KeyError: If the response format is unexpected or missing required fields.
+        """
+
+        if limit <= 0:
+            return []
+
+        # Make the API request for this batch
+        batch_limit = min(limit, GET_MESSAGE_MAX_LIMIT)
+        response = self._raw_get_messages(limit=batch_limit, cursor=cursor)
+        messages: List[ApiPayloadType] = response["messages"]
+
+        # Base case: no more messages or no cursor for pagination
+        if (
+            "cursor" not in response
+            or not response["cursor"]
+            or len(messages) < batch_limit
+        ):
+            return messages
+
+        # Recursive case: fetch more messages and combine
+        remaining_limit = limit - len(messages)
+        if remaining_limit > 0:
+            next_messages = self._raw_get_messages_paginated(
+                remaining_limit, response["cursor"]
+            )
+            return messages + next_messages
+        else:
+            return messages
+
+    def get_messages(
+        self, msg_filter: Optional[Filter] = None, limit: int = 50
+    ) -> List[DirectMessage]:
         """Retrieve messages from the conversation with optional filtering.
 
-        Fetches all messages in the conversation from the BlueSky server and
-        optionally applies a filter to return only messages matching specific criteria.
+        Fetches n most recent messages messages in the conversation from the BlueSky server and
+        optionally applies a filter to return only messages matching specific criteria.  The
+        number fetched is controlled by the `limit` parameter, which defaults to 50.
 
         Args:
             msg_filter (Optional[Filter]): An optional filter function or Filter object
@@ -319,14 +424,10 @@ class Convo:
             - Large conversations may take time to fetch all messages
             - Messages are typically returned in chronological order
         """
-        response = requests.get(
-            CHAT_SLUG + GET_MESSAGES + "?convoId=" + self.convo_id,
-            headers=get_auth_header(self._session["accessJwt"]),
-        )
-        response.raise_for_status()
+        messages = self._raw_get_messages_paginated(limit=limit)
         return [
             DirectMessage(message, self)
-            for message in response.json()["messages"]
+            for message in messages
             if not msg_filter or msg_filter(DirectMessage(message, self))
         ]
 
