@@ -241,6 +241,13 @@ class TestPost(unittest.TestCase):
         self.assertEqual(
             post.post["text"], "Hello 🎉 @user.bsky.social 🎤 and @test.example.com 🚀"
         )
+        # Check start/end positions for mentions
+        self.assertEqual(mentions[0]["start"], 8)  # after 'Hello 🎉 '
+        self.assertEqual(mentions[0]["end"], 25)  # end of '@user.bsky.social'
+        self.assertEqual(mentions[0]["handle"], "user.bsky.social")
+        self.assertEqual(mentions[1]["start"], 32)  # after '🎤 and '
+        self.assertEqual(mentions[1]["end"], 49)  # end of '@test.example.com'
+        self.assertEqual(mentions[1]["handle"], "test.example.com")
 
     def test_parse_hashtags_with_emojis(self):
         content = "Great game 🎉 #football 🎤 and #soccer ⚽"

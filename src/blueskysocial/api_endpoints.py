@@ -14,3 +14,6 @@ LIST_CONVOS = "chat.bsky.convo.listConvos"
 GET_MESSAGES = "chat.bsky.convo.getMessages"
 GET_CONVO_FOR_MEMBERS = "chat.bsky.convo.getConvoForMembers"
 SEND_MESSAGE = "chat.bsky.convo.sendMessage"
+
+
+GET_MESSAGE_MAX_LIMIT = 100
