@@ -2,6 +2,8 @@
 
 blueskysocial is a Python library for managing social media posts and images. It provides a Client class for interacting with social media platforms, as well as classes for representing posts and images.
 
+Extended ducumentation provided by Devin AI DeepWiki: https://deepwiki.com/dmoggles/blueskysocial
+
 ## Important Note About Issues
 
 While I welcome issues and try to work on them, I also have come to realise that I frequently don't see them. 
