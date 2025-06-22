@@ -151,7 +151,7 @@ def provide_aspect_ratio(
     aspect_ratio = consumer.aspect_ratio_function(consumer.data_accessor)
     if aspect_ratio is None and consumer.require_aspect_ratio:
         raise UnknownAspectRatioError(
-            f"{consumer.__class__} aspect ratio could not be determined. "
+            f"{consumer.__class__.__name__} aspect ratio could not be determined. "
             "Please provide a valid aspect ratio function or data accessor."
             "or provide a valid aspect ratio at construction time using the aspect_ratio parameter."
         )
