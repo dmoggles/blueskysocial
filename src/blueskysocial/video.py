@@ -30,7 +30,7 @@ from blueskysocial.post_attachment import PostAttachment
 from blueskysocial.utils import get_auth_header
 from blueskysocial.typedefs import PostProtocol, ApiPayloadType, as_str
 
-VIDEO_MIME_TYPES_FROM_EXTENTIONS = {
+VIDEO_MIME_TYPES_FROM_EXTENSIONS = {
     "mp4": "video/mp4",
     "mpeg": "video/mpeg",
     "webm": "video/webm",
