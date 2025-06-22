@@ -8,7 +8,7 @@ name = "blueskysocial"
 
 
 dependencies = [
-    "requests","BeautifulSoup4"
+    "requests","BeautifulSoup4","pillow==11.2.1","opencv-python==4.11.0.86"
 ]
 [project.optional-dependencies]
 dev = [
