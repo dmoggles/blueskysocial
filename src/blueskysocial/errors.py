@@ -70,7 +70,6 @@ class TooManyImagesError(Exception):
 
         Args:
             images_count (int): The number of images currently attached.
-            max_images (int): The maximum number of images allowed.
         """
         super().__init__(
             f"Too many images attached: {images_count} (max {self.MAX_IMAGES})"
@@ -97,7 +96,6 @@ class TooManyAttachmentsError(Exception):
 
         Args:
             attachments_count (int): The number of attachments currently added.
-            max_attachments (int): The maximum number of attachments allowed.
         """
         super().__init__(
             f"Too many non-image attachments added: {attachments_count} (max {self.MAX_ATTACHMENTS})"

@@ -49,7 +49,7 @@ def as_bs4_tag(value: Any) -> Tag:
         value (Any): The value to convert to a string.
 
     Returns:
-        str: The string representation of the value, or an empty string if the value is None.
+        Tag: The BeautifulSoup Tag representation of the value.
     """
     if isinstance(value, Tag):
         return value

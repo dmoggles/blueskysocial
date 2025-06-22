@@ -2,8 +2,9 @@
 Utilities for the BlueSky Social API.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from bs4 import Tag
+from bs4.element import NavigableString
 
 
 def parse_uri(uri: str) -> Dict[str, str]:
@@ -43,14 +44,19 @@ def get_auth_header(
     return headers
 
 
-def bs4_tag_extract_content(tag: Tag) -> str:
+def bs4_tag_extract_content(tag: Optional[Union[Tag, NavigableString]]) -> str:
     """
     Extracts the content from a BeautifulSoup tag, handling None values.
 
     Args:
-        tag: A BeautifulSoup tag object.
+        tag: A BeautifulSoup tag object, NavigableString, or None.
 
     Returns:
         str: The content of the tag, or an empty string if the tag is None.
     """
-    return str(tag.get("content", "")) if tag else ""
+    if tag is None:
+        return ""
+    if isinstance(tag, Tag):
+        content = tag.get("content")
+        return str(content) if content is not None else ""
+    return ""
