@@ -301,24 +301,18 @@ class Convo:
             KeyError: If the response format is unexpected or missing required fields.
         """
         limit = min(limit, 100)  # Cap limit to 100 based on API constraints
+        from urllib.parse import urlencode
+
+        base_url = CHAT_SLUG + GET_MESSAGES
+        query_params = {"convoId": self.convo_id, "limit": limit}
         if cursor:
-            response = requests.get(
-                CHAT_SLUG
-                + GET_MESSAGES
-                + "?convoId="
-                + self.convo_id
-                + f"&limit={limit}&cursor={cursor}",
-                headers=get_auth_header(self._session["accessJwt"]),
-            )
-        else:
-            response = requests.get(
-                CHAT_SLUG
-                + GET_MESSAGES
-                + "?convoId="
-                + self.convo_id
-                + f"&limit={limit}",
-                headers=get_auth_header(self._session["accessJwt"]),
-            )
+            query_params["cursor"] = cursor
+
+        url = f"{base_url}?{urlencode(query_params)}"
+        response = requests.get(
+            url,
+            headers=get_auth_header(self._session["accessJwt"]),
+        )
         response.raise_for_status()
         return cast(ApiPayloadType, response.json())
 
