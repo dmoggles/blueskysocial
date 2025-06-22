@@ -13,7 +13,7 @@ class TestVideo(unittest.TestCase):
         video_data = b"example video data"
         mock_post.return_value.json.return_value = {"blob": "uploaded_blob"}
 
-        video = Video(file_path, 'alt-text')
+        video = Video(file_path, "alt-text")
         result = video.build(session)
 
         mock_open.assert_called_once_with(file_path, "rb")
@@ -41,6 +41,6 @@ class TestVideo(unittest.TestCase):
         mock_open.assert_called_once_with(file_path, "rb")
         mock_post.assert_not_called()
 
+
 if __name__ == "__main__":
     unittest.main()
-    

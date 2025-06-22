@@ -8,7 +8,7 @@ options = config["options"]
 # Define the setup() arguments
 setup(
     name=metadata["name"],
-    version='{{VERSION_PLACEHOLDER}}',
+    version='0.0.1',
     author=metadata["author"],
     author_email=metadata["author_email"],
     description=metadata["description"],

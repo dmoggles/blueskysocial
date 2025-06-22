@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 from blueskysocial.client import Client, Post
 from blueskysocial.errors import SessionNotAuthenticatedError
+from blueskysocial.convos.filters import Filter
 import requests
 
 
@@ -153,9 +154,13 @@ class TestClient(unittest.TestCase):
             ]
         }
         self.client._session = {"accessJwt": "access_token", "did": "did"}
-        mock_filter = MagicMock()
-        mock_filter.evaluate.side_effect = lambda convo: convo.convo_id == "convo1"
-        result = self.client.get_convos(mock_filter)
+
+        class MockFilter(Filter):
+
+            def __call__(self, convo):
+                return convo.convo_id == "convo1"
+
+        result = self.client.get_convos(MockFilter())
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].convo_id, "convo1")
         mock_get.assert_called_with(

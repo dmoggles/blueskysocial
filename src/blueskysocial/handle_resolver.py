@@ -6,6 +6,7 @@ import requests
 from blueskysocial.api_endpoints import RPC_SLUG, RESOLVE_HANDLE
 from blueskysocial.utils import get_auth_header
 from blueskysocial.errors import InvalidUserHandleError
+from blueskysocial.typedefs import as_str
 
 
 def resolve_handle(handle: str, access_token: str) -> str:
@@ -27,4 +28,4 @@ def resolve_handle(handle: str, access_token: str) -> str:
         raise InvalidUserHandleError(f"Invalid user handle {handle}")
 
     response.raise_for_status()
-    return response.json()["did"]
+    return as_str(response.json()["did"])

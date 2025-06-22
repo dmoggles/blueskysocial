@@ -1,5 +1,5 @@
 """
-Utilities for facilitating the retrieval of reply 
+Utilities for facilitating the retrieval of reply
 references in the BlueSky Social API.
 """
 
@@ -9,7 +9,7 @@ from blueskysocial.api_endpoints import RPC_SLUG
 from blueskysocial.utils import parse_uri
 
 
-def get_reply_refs(parent_uri: str) -> Dict:
+def get_reply_refs(parent_uri: str) -> Dict[str, Dict[str, str]]:
     """
     Retrieves the root and parent references for a given parent URI.
     This function takes a parent URI, parses it, and makes a request to fetch the

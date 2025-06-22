@@ -5,11 +5,7 @@ from blueskysocial.api_endpoints import (
     UPLOAD_BLOB,
 )
 from blueskysocial.image import Image, IMAGE_MIMETYPE
-import requests
 from io import BytesIO
-from typing import Union
-from unittest.mock import patch
-from unittest.mock import patch
 
 
 class TestImage(unittest.TestCase):
@@ -18,30 +14,31 @@ class TestImage(unittest.TestCase):
         url = "https://example.com/image.jpg"
         alt_text = "Example Image"
         image = Image(url, alt_text)
-        self.assertEqual(image._image_src, url)
+
         self.assertEqual(image._alt_text, alt_text)
         self.assertIsNotNone(image._image)
         mock_get.assert_called_once_with(url)
-        assert image._image == mock_get.return_value.content
+        self.assertEqual(image._image, mock_get.return_value.content)
 
     @patch("builtins.open", new_callable=mock_open, read_data=b"example image data")
     def test_init_from_file(self, mock_open):
         file_path = "/path/to/image.jpg"
         alt_text = "Example Image"
         image = Image(file_path, alt_text)
-        self.assertEqual(image._image_src, file_path)
+
         self.assertEqual(image._alt_text, alt_text)
         self.assertIsNotNone(image._image)
         mock_open.assert_called_once_with(file_path, "rb")
-        assert image._image == b"example image data"
+        self.assertEqual(image._image, b"example image data")
 
     def test_init_from_file_handle(self):
         file_handle = BytesIO(b"example image data")
         alt_text = "Example Image"
         image = Image(file_handle, alt_text)
-        self.assertEqual(image._image_src, file_handle)
+
         self.assertEqual(image._alt_text, alt_text)
         self.assertIsNotNone(image._image)
+        self.assertEqual(image._image, b"example image data")
 
     @patch("requests.get")
     def test_get_image_from_url(self, mock_get):
