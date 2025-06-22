@@ -1,9 +1,9 @@
 from bs4 import BeautifulSoup
-from typing import Dict
 import requests
 from blueskysocial.api_endpoints import RPC_SLUG, UPLOAD_BLOB
 from blueskysocial.post_attachment import PostAttachment
-from blueskysocial.utils import get_auth_header
+from blueskysocial.utils import get_auth_header, bs4_tag_extract_content
+from blueskysocial.typedefs import as_bs4_tag, ApiPayloadType, PostProtocol
 
 IMAGE_MIMETYPE = "image/png"
 
@@ -13,10 +13,10 @@ class WebCard(PostAttachment):
         self._url = url
 
     @staticmethod
-    def fetch_embed_url_card(access_token: str, url: str) -> Dict:
+    def fetch_embed_url_card(access_token: str, url: str) -> ApiPayloadType:
 
         # the required fields for every embed card
-        card = {
+        card: ApiPayloadType = {
             "uri": url,
             "title": "",
             "description": "",
@@ -28,17 +28,18 @@ class WebCard(PostAttachment):
         soup = BeautifulSoup(resp.text, "html.parser")
 
         # parse out the "og:title" and "og:description" HTML meta tags
-        title_tag = soup.find("meta", property="og:title")
+        title_tag = as_bs4_tag(soup.find("meta", property="og:title"))
+
         if title_tag:
-            card["title"] = title_tag["content"]
-        description_tag = soup.find("meta", property="og:description")
+            card["title"] = bs4_tag_extract_content(title_tag)
+        description_tag = as_bs4_tag(soup.find("meta", property="og:description"))
         if description_tag:
-            card["description"] = description_tag["content"]
+            card["description"] = bs4_tag_extract_content(description_tag)
 
         # if there is an "og:image" HTML meta tag, fetch and upload that image
-        image_tag = soup.find("meta", property="og:image")
+        image_tag = as_bs4_tag(soup.find("meta", property="og:image"))
         if image_tag:
-            img_url = image_tag["content"]
+            img_url = bs4_tag_extract_content(image_tag)
             # naively turn a "relative" URL (just a path) into a full URL, if needed
             if "://" not in img_url:
                 img_url = url + img_url
@@ -59,7 +60,7 @@ class WebCard(PostAttachment):
             "external": card,
         }
 
-    def attach_to_post(self, post, session: dict):
+    def attach_to_post(self, post: PostProtocol, session: ApiPayloadType) -> None:
         try:
             post.post["embed"] = self.fetch_embed_url_card(
                 session["accessJwt"], self._url

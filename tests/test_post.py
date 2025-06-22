@@ -1,7 +1,12 @@
+from io import BytesIO
 import unittest
 from unittest.mock import patch, MagicMock
 from blueskysocial.post import Post
-from blueskysocial.errors import SessionNotAuthenticatedError
+from blueskysocial.errors import (
+    PostTooLongError,
+    TooManyImagesError,
+    InvalidAttachmentsError,
+)
 from blueskysocial.api_endpoints import MENTION_TYPE, LINK_TYPE, HASHTAG_TYPE
 from blueskysocial.image import Image
 from blueskysocial.video import Video
@@ -11,8 +16,8 @@ class MockImage(Image):
     def build(self, session):
         return "image_blob"
 
-    def _initialize(self):
-        pass
+    def _set_image(self, image_src: str | BytesIO) -> bytes:
+        return b"mock_image_blob"
 
 
 class MockVideo(Video):
@@ -39,9 +44,9 @@ class TestPost(unittest.TestCase):
 
     def test_init_with_too_many_images(self):
         content = "This is a test post"
-        images = [MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()]
-        with self.assertRaises(Exception):
-            Post(content, images)
+        images = [MagicMock(spec=Image) for _ in range(6)]
+        with self.assertRaises(TooManyImagesError):
+            Post(content, with_attachments=images)
 
     def test_add_languages(self):
         content = "This is a test post"
@@ -136,7 +141,7 @@ class TestPost(unittest.TestCase):
         session = {"accessJwt": "access_token"}
         video = MockVideo("path/to/video.mp4")
 
-        post = Post(content, video=video)
+        post = Post(content, with_attachments=video)
         built_post = post.build(session)
         self.assertEqual(built_post["text"], content)
         self.assertIn("createdAt", built_post)
@@ -146,16 +151,17 @@ class TestPost(unittest.TestCase):
 
     def test_build_with_images_and_video(self):
         content = "This is a test post"
-        images = [MagicMock(), MagicMock()]
-        video = MagicMock()
-        with self.assertRaises(Exception):
-            Post(content, images, video)
+        images = [MagicMock(spec=Image), MagicMock(spec=Image)]
+        video = MagicMock(spec=Video)
+        attachments = images + [video]
+        with self.assertRaises(InvalidAttachmentsError):
+            Post(content, attachments)
 
     def test_build_too_long_post(self):
         content = "This is a test post" * 1000
         session = {"accessJwt": "access_token"}
         post = Post(content)
-        with self.assertRaises(Exception):
+        with self.assertRaises(PostTooLongError):
             post.build(session)
 
     def test_parse_hashtags(self):
@@ -199,13 +205,19 @@ class TestPost(unittest.TestCase):
         post = Post(content)
         facets = post.parse_facets()
 
-        self.assertEqual(post.post['text'], "loss 🎤 Site Chelsea Football Club")
+        self.assertEqual(post.post["text"], "loss 🎤 Site Chelsea Football Club")
         self.assertEqual(len(facets), 1)
         self.assertEqual(facets[0]["features"][0]["$type"], LINK_TYPE)
-        self.assertEqual(facets[0]["features"][0]["uri"], "https://www.chelseafc.com/en/video/maresca-on-3-1-loss-20-06-2025")
+        self.assertEqual(
+            facets[0]["features"][0]["uri"],
+            "https://www.chelseafc.com/en/video/maresca-on-3-1-loss-20-06-2025",
+        )
         # The emoji 🎤 takes 4 bytes, so "Chelsea" starts at byte position 16, not 13
         self.assertEqual(facets[0]["index"]["byteStart"], 15)
-        self.assertEqual(facets[0]["index"]["byteEnd"], 15 + len("Chelsea Football Club".encode('utf-8')))
+        self.assertEqual(
+            facets[0]["index"]["byteEnd"],
+            15 + len("Chelsea Football Club".encode("utf-8")),
+        )
 
     @patch("requests.get")
     def test_parse_mentions_with_emojis(self, mock_get):
@@ -213,16 +225,18 @@ class TestPost(unittest.TestCase):
         mock_get.return_value.json.return_value = {"did": "1234567890"}
         post = Post(content)
         mentions = post._parse_mentions()
-        
+
         self.assertEqual(len(mentions), 2)
         # First mention should be correctly positioned after emoji
-        self.assertEqual(post.post['text'], 'Hello 🎉 @user.bsky.social 🎤 and @test.example.com 🚀')
+        self.assertEqual(
+            post.post["text"], "Hello 🎉 @user.bsky.social 🎤 and @test.example.com 🚀"
+        )
 
     def test_parse_hashtags_with_emojis(self):
         content = "Great game 🎉 #football 🎤 and #soccer ⚽"
         post = Post(content)
         hashtags = post._parse_hashtags()
-        
+
         self.assertEqual(len(hashtags), 2)
         # First hashtag should be correctly positioned after emoji
         self.assertEqual(hashtags[0]["start"], 13)
@@ -237,7 +251,7 @@ class TestPost(unittest.TestCase):
         content = "Check this out 🎉 https://example.com 🎤 and https://test.org ⚽"
         post = Post(content)
         urls = post._parse_urls()
-        
+
         self.assertEqual(len(urls), 2)
         # First URL should be correctly positioned after emoji
         self.assertEqual(urls[0]["start"], 17)
@@ -250,37 +264,53 @@ class TestPost(unittest.TestCase):
 
     @patch("requests.get")
     def test_parse_facets_with_multiple_emojis_and_elements(self, mock_get):
-        content = "🎉 Amazing game! @user.bsky.social 🎤 #football ⚽ https://example.com 🚀"
+        content = (
+            "🎉 Amazing game! @user.bsky.social 🎤 #football ⚽ https://example.com 🚀"
+        )
         mock_get.return_value.json.return_value = {"did": "1234567890"}
         post = Post(content)
         facets = post.parse_facets()
-        
+
         # Should find mention, hashtag, and URL despite multiple emojis
         self.assertEqual(len(facets), 3)
-        
+
         # Check mention facet
-        mention_facet = next(f for f in facets if f["features"][0]["$type"] == MENTION_TYPE)
-        self.assertEqual(mention_facet["index"]["byteStart"], 19)  # Position after "🎉 Amazing game! " (emoji is 4 bytes)
-        self.assertEqual(mention_facet["index"]["byteEnd"], 36)    # End of "@user.bsky.social"
-        
-        # Check hashtag facet  
-        hashtag_facet = next(f for f in facets if f["features"][0]["$type"] == HASHTAG_TYPE)
-        self.assertEqual(hashtag_facet["index"]["byteStart"], 42)  # Position after "@user.bsky.social 🎤 "
-        self.assertEqual(hashtag_facet["index"]["byteEnd"], 51)    # End of "#football"
-        
+        mention_facet = next(
+            f for f in facets if f["features"][0]["$type"] == MENTION_TYPE
+        )
+        self.assertEqual(
+            mention_facet["index"]["byteStart"], 19
+        )  # Position after "🎉 Amazing game! " (emoji is 4 bytes)
+        self.assertEqual(
+            mention_facet["index"]["byteEnd"], 36
+        )  # End of "@user.bsky.social"
+
+        # Check hashtag facet
+        hashtag_facet = next(
+            f for f in facets if f["features"][0]["$type"] == HASHTAG_TYPE
+        )
+        self.assertEqual(
+            hashtag_facet["index"]["byteStart"], 42
+        )  # Position after "@user.bsky.social 🎤 "
+        self.assertEqual(hashtag_facet["index"]["byteEnd"], 51)  # End of "#football"
+
         # Check URL facet
         url_facet = next(f for f in facets if f["features"][0]["$type"] == LINK_TYPE)
-        self.assertEqual(url_facet["index"]["byteStart"], 56)     # Position after "#football ⚽ "
-        self.assertEqual(url_facet["index"]["byteEnd"], 75)       # End of "https://example.com"
+        self.assertEqual(
+            url_facet["index"]["byteStart"], 56
+        )  # Position after "#football ⚽ "
+        self.assertEqual(
+            url_facet["index"]["byteEnd"], 75
+        )  # End of "https://example.com"
 
     def test_rich_url_with_multiple_emojis(self):
         content = "🎉 Check out [Amazing Site 🎤](https://example.com) 🚀 More text ⚽"
         post = Post(content)
-        facets = post.parse_facets()
-        
+        post.parse_facets()
+
         # Text should be correctly processed with emojis preserved
         expected_text = "🎉 Check out Amazing Site 🎤 🚀 More text ⚽"
-        self.assertEqual(post.post['text'], expected_text)
+        self.assertEqual(post.post["text"], expected_text)
 
 
 if __name__ == "__main__":

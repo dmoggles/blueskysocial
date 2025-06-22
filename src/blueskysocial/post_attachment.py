@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from blueskysocial.typedefs import ApiPayloadType, PostProtocol
 
 
 class PostAttachment(ABC):
@@ -12,7 +13,7 @@ class PostAttachment(ABC):
     """
 
     @abstractmethod
-    def attach_to_post(self, post, session: dict):
+    def attach_to_post(self, post: PostProtocol, session: ApiPayloadType) -> None:
         """
         Attach the attachment to the post.
         """
