@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch, mock_open
-from blueskysocial.video import Video, VIDEO_MIME_TYPES_FROM_EXTENTIONS
+from blueskysocial.video import Video, VIDEO_MIME_TYPES_FROM_EXTENSIONS
 from blueskysocial.api_endpoints import UPLOAD_BLOB, RPC_SLUG
 
 
@@ -21,7 +21,7 @@ class TestVideo(unittest.TestCase):
             RPC_SLUG + UPLOAD_BLOB,
             headers={
                 "Authorization": f"Bearer {session['accessJwt']}",
-                "Content-Type": VIDEO_MIME_TYPES_FROM_EXTENTIONS["mp4"],
+                "Content-Type": VIDEO_MIME_TYPES_FROM_EXTENSIONS["mp4"],
             },
             data=video_data,
         )

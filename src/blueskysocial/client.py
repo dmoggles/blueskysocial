@@ -403,17 +403,17 @@ class Client:
 
         return responses
 
-    def get_convos(self, filter: Optional[Filter] = None) -> List[Convo]:
+    def get_convos(self, convo_filter: Optional[Filter] = None) -> List[Convo]:
         """Retrieve a list of conversations for the authenticated user.
 
         Fetches all conversations that the authenticated user is a member of,
         with optional filtering to match specific criteria.
 
         Args:
-            filter (Optional[Filter]): An optional filter function or Filter object
-                                      to apply to the conversations. Only conversations
-                                      that pass the filter will be included in the
-                                      returned list. If None, all conversations are returned.
+            convo_filter (Optional[Filter]): An optional filter function or Filter object
+                                            to apply to the conversations. Only conversations
+                                            that pass the filter will be included in the
+                                            returned list. If None, all conversations are returned.
 
         Returns:
             List[Convo]: A list of Convo objects representing the user's conversations.
@@ -455,7 +455,7 @@ class Client:
         return [
             Convo(convo, self._session)
             for convo in convos["convos"]
-            if not filter or filter(Convo(convo, self._session))
+            if not convo_filter or convo_filter(Convo(convo, self._session))
         ]
 
     def get_convo_for_members(self, members: Union[List[str], str]) -> Convo:

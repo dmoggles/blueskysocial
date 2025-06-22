@@ -13,7 +13,7 @@ Classes:
     Video: Handles video file upload and attachment to posts
 
 Constants:
-    VIDEO_MIME_TYPES_FROM_EXTENTIONS: Mapping of file extensions to MIME types
+    VIDEO_MIME_TYPES_FROM_EXTENSIONS: Mapping of file extensions to MIME types
 
 Example:
     # Create a video attachment and add it to a post
@@ -189,7 +189,7 @@ class Video(PostAttachment):
         Raises:
             FileNotFoundError: If the video file at the specified path doesn't exist
             Exception: If the video file extension is not supported (not in
-                      VIDEO_MIME_TYPES_FROM_EXTENTIONS)
+                      VIDEO_MIME_TYPES_FROM_EXTENSIONS)
             requests.HTTPError: If the HTTP upload request fails (network issues,
                               authentication problems, file too large, etc.)
             KeyError: If the session doesn't contain required authentication data
@@ -206,7 +206,7 @@ class Video(PostAttachment):
                 stream = file.read()
 
             try:
-                mime_type = VIDEO_MIME_TYPES_FROM_EXTENTIONS[self._path.split(".")[-1]]
+                mime_type = VIDEO_MIME_TYPES_FROM_EXTENSIONS[self._path.split(".")[-1]]
             except KeyError:
                 raise Exception("Unsupported video format")
 

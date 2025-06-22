@@ -272,14 +272,14 @@ class Convo:
             self._raw_json["lastMessage"]["sentAt"], "%Y-%m-%dT%H:%M:%S.%fZ"
         )
 
-    def get_messages(self, filter: Optional[Filter] = None) -> List[DirectMessage]:
+    def get_messages(self, msg_filter: Optional[Filter] = None) -> List[DirectMessage]:
         """Retrieve messages from the conversation with optional filtering.
 
         Fetches all messages in the conversation from the BlueSky server and
         optionally applies a filter to return only messages matching specific criteria.
 
         Args:
-            filter (Optional[Filter]): An optional filter function or Filter object
+            msg_filter (Optional[Filter]): An optional filter function or Filter object
                                       to apply to the messages. Only messages for which
                                       the filter returns True will be included in the
                                       result. If None, all messages are returned.
@@ -327,7 +327,7 @@ class Convo:
         return [
             DirectMessage(message, self)
             for message in response.json()["messages"]
-            if not filter or filter(DirectMessage(message, self))
+            if not msg_filter or msg_filter(DirectMessage(message, self))
         ]
 
     def send_message(self, text: str) -> DirectMessage:
