@@ -382,6 +382,9 @@ class Convo:
                                       to apply to the messages. Only messages for which
                                       the filter returns True will be included in the
                                       result. If None, all messages are returned.
+            limit (int): The maximum number of messages to retrieve. Defaults to 50.
+                         There is no upper limit, because we will internally handle pagination
+                         and fetch all messages in the conversation.
 
         Returns:
             List[DirectMessage]: A list of DirectMessage objects representing the
@@ -412,11 +415,19 @@ class Convo:
             >>> recent_filter = Filter(lambda msg:
             ...     (dt.datetime.utcnow() - msg.sent_at).days < 7)
             >>> recent_messages = convo.get_messages(recent_filter)
+            >>> # Print recent messages
+            >>> for msg in recent_messages:
+            ...     print(f"{msg.sender}: {msg.text} (sent at {msg.sent_at})")
+            >>> # Get a limited number of messages
+            >>> limited_messages = convo.get_messages(limit=10)
+            >>> for msg in limited_messages:
+            ...     print(f"{msg.sender}: {msg.text} (sent at {msg.sent_at})")
+
 
         Note:
             - Filtering is applied client-side after retrieving all messages
             - Large conversations may take time to fetch all messages
-            - Messages are typically returned in chronological order
+            - Messages are typically returned in reverse chronological order
         """
         messages = self._raw_get_messages_paginated(limit=limit)
         return [
