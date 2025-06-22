@@ -140,13 +140,15 @@ class TestGetImageAspectRatioSpec(unittest.TestCase):
 class TestGetVideoAspectRatioSpec(unittest.TestCase):
     """Test cases for get_video_aspect_ratio_spec function."""
 
-    @patch('blueskysocial.utils.cv2')
+    @patch("blueskysocial.utils.cv2")
     def test_get_video_aspect_ratio_spec_success(self, mock_cv2):
         """Test successful video aspect ratio extraction."""
         # Mock VideoCapture instance
         mock_cap = MagicMock()
         mock_cap.isOpened.return_value = True
-        mock_cap.get.side_effect = lambda prop: 1920.0 if prop == mock_cv2.CAP_PROP_FRAME_WIDTH else 1080.0
+        mock_cap.get.side_effect = lambda prop: (
+            1920.0 if prop == mock_cv2.CAP_PROP_FRAME_WIDTH else 1080.0
+        )
         mock_cv2.VideoCapture.return_value = mock_cap
         mock_cv2.CAP_PROP_FRAME_WIDTH = 3
         mock_cv2.CAP_PROP_FRAME_HEIGHT = 4
@@ -158,7 +160,7 @@ class TestGetVideoAspectRatioSpec(unittest.TestCase):
         mock_cap.isOpened.assert_called_once()
         mock_cap.release.assert_called_once()
 
-    @patch('blueskysocial.utils.cv2')
+    @patch("blueskysocial.utils.cv2")
     def test_get_video_aspect_ratio_spec_cannot_open(self, mock_cv2):
         """Test video that cannot be opened."""
         mock_cap = MagicMock()
@@ -173,7 +175,7 @@ class TestGetVideoAspectRatioSpec(unittest.TestCase):
         # release() should not be called because ValueError is raised before that line
         mock_cap.release.assert_not_called()
 
-    @patch('blueskysocial.utils.cv2')
+    @patch("blueskysocial.utils.cv2")
     def test_get_video_aspect_ratio_spec_exception(self, mock_cv2):
         """Test exception handling during video processing."""
         mock_cv2.VideoCapture.side_effect = Exception("Video processing error")
@@ -183,7 +185,7 @@ class TestGetVideoAspectRatioSpec(unittest.TestCase):
         self.assertIsNone(result)
         mock_cv2.VideoCapture.assert_called_once_with("error_video.mp4")
 
-    @patch('blueskysocial.utils.cv2')
+    @patch("blueskysocial.utils.cv2")
     def test_get_video_aspect_ratio_spec_square_video(self, mock_cv2):
         """Test square video dimensions."""
         mock_cap = MagicMock()
@@ -216,7 +218,10 @@ class TestProvideAspectRatio(unittest.TestCase):
         """Test when aspect_ratio_function returns valid ratio."""
         mock_consumer = Mock(spec=AspectRatioConsumerProtocol)
         mock_consumer.aspect_ratio = None
-        mock_consumer.aspect_ratio_function.return_value = {"width": 1280, "height": 720}
+        mock_consumer.aspect_ratio_function.return_value = {
+            "width": 1280,
+            "height": 720,
+        }
         mock_consumer.require_aspect_ratio = False
         mock_consumer.data_accessor = b"mock_data"
 
